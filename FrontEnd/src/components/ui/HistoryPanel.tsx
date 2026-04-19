@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { historyAPI } from "../services/api";
+import { historyAPI } from "@/Services/api";
 import { Trash2, ChevronDown, ChevronUp, Clock } from "lucide-react";
 
 type Step = { step: number; description: string; result: string };
