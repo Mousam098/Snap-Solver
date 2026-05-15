@@ -1,5 +1,5 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { GEMINI_API_KEY } = require('../config/constants');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GEMINI_API_KEY } = require("../config/constants");
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
@@ -217,30 +217,66 @@ Example format:
 {"expr": "Debug Memory Leak", "result": "# Original code with memory leak\\nclass ResourceManager:\\n    def __init__(self):\\n        self.resource = acquire_resource()\\n\\n# Fixed code\\nclass ResourceManager:\\n    def __init__(self):\\n        self.resource = acquire_resource()\\n    def __del__(self):\\n        release_resource(self.resource)"}
 ]`;
 
-    // Generate content with combined image and prompt
-    const result = await model.generateContent([{
-        inlineData: {
-          mimeType: "image/png",  // Changed to PNG
-          data: imageBuffer.toString('base64')
-        }
-      }, prompt]);
+  // Generate content with combined image and prompt
+  const result = await model.generateContent([
+    {
+      inlineData: {
+        mimeType: "image/png", // Changed to PNG
+        data: imageBuffer.toString("base64"),
+      },
+    },
+    prompt,
+  ]);
   const response = await result.response;
   const text = response.text();
-  console.log('Gemini API response:', text);
+  console.log("Gemini API response:", text);
 
   let answers = [];
   try {
-    const cleanedText = text.replace(/```json\n?|\n?```/g, '').trim();
+    const cleanedText = text.replace(/```json\n?|\n?```/g, "").trim();
     answers = JSON.parse(cleanedText);
   } catch (error) {
-    console.error('Error parsing Gemini API response:', error);
+    console.error("Error parsing Gemini API response:", error);
   }
 
-  answers.forEach(answer => {
+  answers.forEach((answer) => {
     answer.assign = answer.assign || false;
   });
 
   return answers;
 }
 
-module.exports = { analyzeImage };
+async function analyzeImageWithSteps(imageBuffer, dict_of_vars) {
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  const prompt = `You are a math tutor. Analyze the mathematical expression or problem in this image.
+Here is a dictionary of user-assigned variables: ${JSON.stringify(dict_of_vars)}.
+
+Respond ONLY with valid JSON — no markdown, no backticks, no extra text:
+{
+  "expression": "the detected expression or problem as text",
+  "answer": "the final answer",
+  "steps": [
+    { "step": 1, "description": "what we do in this step", "result": "intermediate result" },
+    { "step": 2, "description": "what we do in this step", "result": "intermediate result" }
+  ]
+}`;
+
+  const result = await model.generateContent([
+    {
+      inlineData: {
+        mimeType: "image/png",
+        data: imageBuffer.toString("base64"),
+      },
+    },
+    prompt,
+  ]);
+
+  const text = result.response.text();
+  console.log("Gemini steps response:", text);
+
+  const clean = text.replace(/```json\n?|\n?```/g, "").trim();
+  return JSON.parse(clean); // returns { expression, answer, steps }
+}
+
+module.exports = { analyzeImage, analyzeImageWithSteps };
