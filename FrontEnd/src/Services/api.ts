@@ -62,6 +62,12 @@ export const calculatorAPI = {
       image: imageData,
       dict_of_vars: dictOfVars,
     }),
+
+  analyzeText: (problem: string, dictOfVars: Record<string, any>) =>
+    axiosInstance.post("/calculate/analyze-text", {
+      problem,
+      dict_of_vars: dictOfVars,
+    }),
 };
 
 // History API
