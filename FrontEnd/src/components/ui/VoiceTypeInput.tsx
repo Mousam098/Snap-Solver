@@ -3,6 +3,29 @@ import { Mic, MicOff, Send } from "lucide-react";
 import toast from "react-hot-toast";
 import { calculatorAPI } from "@/Services/api";
 
+// Fix: Add SpeechRecognition type declarations
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionInstance extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: ((e: SpeechRecognitionEvent) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognitionInstance;
+    webkitSpeechRecognition: new () => SpeechRecognitionInstance;
+  }
+}
+
 interface Props {
   onResult: (expression: string, answer: string, steps: unknown[]) => void;
   dictOfVars: Record<string, unknown>;
@@ -12,7 +35,7 @@ export default function VoiceTypeInput({ onResult, dictOfVars }: Props) {
   const [problem, setProblem] = useState("");
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
   // 🎤 Voice input handler
   const toggleVoice = () => {
@@ -23,12 +46,7 @@ export default function VoiceTypeInput({ onResult, dictOfVars }: Props) {
     }
 
     const SpeechRecognition =
-      window.SpeechRecognition ||
-      (
-        window as unknown as {
-          webkitSpeechRecognition: typeof window.SpeechRecognition;
-        }
-      ).webkitSpeechRecognition;
+      window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       toast.error("Voice input not supported in this browser.");
@@ -40,7 +58,7 @@ export default function VoiceTypeInput({ onResult, dictOfVars }: Props) {
     recognition.continuous = false;
     recognition.interimResults = false;
 
-    recognition.onresult = (e) => {
+    recognition.onresult = (e: SpeechRecognitionEvent) => {
       const transcript = e.results[0][0].transcript;
       setProblem(transcript);
       toast.success(`Heard: "${transcript}"`);
@@ -74,7 +92,7 @@ export default function VoiceTypeInput({ onResult, dictOfVars }: Props) {
 
       toast.success("Solution found! 🎯", { id: toastId, duration: 3000 });
       onResult(expression, answer, steps);
-      setProblem(""); // clear input after solving
+      setProblem("");
     } catch (error) {
       console.error("Error:", error);
       toast.error("Error solving problem. Please try again.");
