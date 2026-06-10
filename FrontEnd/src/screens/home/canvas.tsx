@@ -6,6 +6,7 @@ import { calculatorAPI } from "@/Services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { MenuIcon } from "lucide-react";
 import HistoryPanel from "@/components/ui/HistoryPanel";
+import VoiceTypeInput from "@/components/ui/VoiceTypeInput";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { Link } from "react-router-dom";
 import {
@@ -407,6 +408,10 @@ export default function Home() {
     //Example implementation:  setLatexExpression(latexExpression.filter((_, index) => index !== id));
   };
 
+  const handleVoiceTypeResult = (expression: string, answer: string) => {
+    renderLatexToCanvas(expression, answer);
+  };
+
   return (
     <>
       {/* Modern Navigation Header */}
@@ -778,6 +783,12 @@ export default function Home() {
           <span className="mr-2">📜</span>
           History
         </Button>
+
+        {/* Voice/Type Input */}
+        <VoiceTypeInput
+          onResult={handleVoiceTypeResult}
+          dictOfVars={dictOfVars}
+        />
       </div>
       {/* Enhanced Canvas - Full Screen Drawing Area */}
       <canvas
