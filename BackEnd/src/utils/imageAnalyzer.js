@@ -303,7 +303,3 @@ Respond ONLY with valid JSON — no markdown, no backticks, no extra text:
 }
 
 module.exports = { analyzeImage, analyzeImageWithSteps, analyzeTextProblem };
-
-module.exports = { analyzeImage, analyzeImageWithSteps };
-
-module.exports = { analyzeImage };
