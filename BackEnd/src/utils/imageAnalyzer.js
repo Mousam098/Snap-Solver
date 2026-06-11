@@ -278,5 +278,28 @@ Respond ONLY with valid JSON — no markdown, no backticks, no extra text:
   const clean = text.replace(/```json\n?|\n?```/g, "").trim();
   return JSON.parse(clean); // returns { expression, answer, steps }
 }
+async function analyzeTextProblem(problem, dict_of_vars = {}) {
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-module.exports = { analyzeImage, analyzeImageWithSteps };
+  const prompt = `You are a math tutor. Solve this math problem: "${problem}"
+Here is a dictionary of user-assigned variables: ${JSON.stringify(dict_of_vars)}.
+
+Respond ONLY with valid JSON — no markdown, no backticks, no extra text:
+{
+  "expression": "the math problem as text",
+  "answer": "the final answer",
+  "steps": [
+    { "step": 1, "description": "what we do in this step", "result": "intermediate result" },
+    { "step": 2, "description": "what we do in this step", "result": "intermediate result" }
+  ]
+}`;
+
+  const result = await model.generateContent(prompt);
+  const text = result.response.text();
+  console.log("Gemini text response:", text);
+
+  const clean = text.replace(/```json\n?|\n?```/g, "").trim();
+  return JSON.parse(clean);
+}
+
+module.exports = { analyzeImage, analyzeImageWithSteps, analyzeTextProblem };
