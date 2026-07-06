@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState, useCallback } from "react";
 
@@ -6,6 +5,8 @@ import { SWATCHES } from "@/constants";
 import { calculatorAPI } from "@/Services/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { MenuIcon } from "lucide-react";
+import HistoryPanel from "@/components/ui/HistoryPanel";
+import VoiceTypeInput from "@/components/ui/VoiceTypeInput";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { Link } from "react-router-dom";
 import {
@@ -73,7 +74,7 @@ export default function Home() {
   const previousPositionRef = useRef<{ x: number; y: number } | null>(null);
   const [touchStartTime, setTouchStartTime] = useState(0);
   const [lastTap, setLastTap] = useState(0);
-
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     if (result) {
@@ -122,8 +123,8 @@ export default function Home() {
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -193,24 +194,31 @@ export default function Home() {
     }
   };
 
-  const getCoordinates = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const rect = canvas.getBoundingClientRect();
-      if ('touches' in e) {
-        return {
-          x: e.touches[0].clientX - rect.left,
-          y: e.touches[0].clientY - rect.top
-        };
-      } else {
-        return {
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top
-        };
+  const getCoordinates = useCallback(
+    (
+      e:
+        | React.MouseEvent<HTMLCanvasElement>
+        | React.TouchEvent<HTMLCanvasElement>,
+    ) => {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        if ("touches" in e) {
+          return {
+            x: e.touches[0].clientX - rect.left,
+            y: e.touches[0].clientY - rect.top,
+          };
+        } else {
+          return {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+          };
+        }
       }
-    }
-    return { x: 0, y: 0 };
-  }, []);
+      return { x: 0, y: 0 };
+    },
+    [],
+  );
 
   const resetCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -222,53 +230,70 @@ export default function Home() {
     }
   }, []);
 
-  const startDrawing = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.style.background = "black";
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.beginPath();
-        const { x, y } = getCoordinates(e);
-        ctx.moveTo(x, y);
-        setIsDrawing(true);
-        previousPositionRef.current = { x, y };
-      }
-    }
-  }, [getCoordinates]);
-
-  const draw = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    if (!isDrawing) {
-      return;
-    }
-    const canvas = canvasRef.current;
-    if (canvas) {
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        const { x, y } = getCoordinates(e);
-        if (eraserSelected) {
-          ctx.globalCompositeOperation = 'destination-out';
+  const startDrawing = useCallback(
+    (
+      e:
+        | React.MouseEvent<HTMLCanvasElement>
+        | React.TouchEvent<HTMLCanvasElement>,
+    ) => {
+      e.preventDefault();
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.style.background = "black";
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
           ctx.beginPath();
-          ctx.arc(x, y, eraserSize / 2, 0, Math.PI * 2, false);
-          ctx.fill();
-        } else {
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.strokeStyle = color;
-          ctx.beginPath();
-          if (previousPositionRef.current) {
-            ctx.moveTo(previousPositionRef.current.x, previousPositionRef.current.y);
-          } else {
-            ctx.moveTo(x, y);
-          }
-          ctx.lineTo(x, y);
-          ctx.stroke();
+          const { x, y } = getCoordinates(e);
+          ctx.moveTo(x, y);
+          setIsDrawing(true);
+          previousPositionRef.current = { x, y };
         }
-        previousPositionRef.current = { x, y };
       }
-    }
-  }, [isDrawing, eraserSelected, eraserSize, color, getCoordinates]);
+    },
+    [getCoordinates],
+  );
+
+  const draw = useCallback(
+    (
+      e:
+        | React.MouseEvent<HTMLCanvasElement>
+        | React.TouchEvent<HTMLCanvasElement>,
+    ) => {
+      e.preventDefault();
+      if (!isDrawing) {
+        return;
+      }
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          const { x, y } = getCoordinates(e);
+          if (eraserSelected) {
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.beginPath();
+            ctx.arc(x, y, eraserSize / 2, 0, Math.PI * 2, false);
+            ctx.fill();
+          } else {
+            ctx.globalCompositeOperation = "source-over";
+            ctx.strokeStyle = color;
+            ctx.beginPath();
+            if (previousPositionRef.current) {
+              ctx.moveTo(
+                previousPositionRef.current.x,
+                previousPositionRef.current.y,
+              );
+            } else {
+              ctx.moveTo(x, y);
+            }
+            ctx.lineTo(x, y);
+            ctx.stroke();
+          }
+          previousPositionRef.current = { x, y };
+        }
+      }
+    },
+    [isDrawing, eraserSelected, eraserSize, color, getCoordinates],
+  );
 
   const stopDrawing = useCallback(() => {
     setIsDrawing(false);
@@ -280,14 +305,14 @@ export default function Home() {
 
     if (canvas) {
       try {
-        const toastId = toast.loading('Processing your equation...');
-        
+        const toastId = toast.loading("Processing your equation...");
+
         const response = await calculatorAPI.processImage(
-          canvas.toDataURL("image/png"), 
-          dictOfVars
+          canvas.toDataURL("image/png"),
+          dictOfVars,
         );
 
-        toast.success('Solution found! 🎯', {
+        toast.success("Solution found! 🎯", {
           id: toastId,
           duration: 3000,
         });
@@ -321,7 +346,6 @@ export default function Home() {
           }
         }
 
-
         resp.data.forEach((data: Response) => {
           setTimeout(() => {
             setResult({
@@ -331,8 +355,11 @@ export default function Home() {
           }, 1000);
         });
       } catch (error: any) {
-        console.error('Error processing image:', error);
-        toast.error(error.response?.data?.message || 'Error processing equation. Please try again.');
+        console.error("Error processing image:", error);
+        toast.error(
+          error.response?.data?.message ||
+            "Error processing equation. Please try again.",
+        );
       }
     }
   };
@@ -358,14 +385,15 @@ export default function Home() {
     setTouchStartTime(Date.now());
   };
 
-  const handleTouchEnd = (id:number) => {
+  const handleTouchEnd = (id: number) => {
     const touchDuration = Date.now() - touchStartTime;
-    if (touchDuration > 500) {  // Long press: more than 500ms
+    if (touchDuration > 500) {
+      // Long press: more than 500ms
       handleDelete(id);
     }
   };
 
-  const handleDoubleTap = (id:number) => {
+  const handleDoubleTap = (id: number) => {
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
     if (now - lastTap < DOUBLE_TAP_DELAY) {
@@ -374,12 +402,15 @@ export default function Home() {
     setLastTap(now);
   };
 
-  const handleDelete = (id:number) => {
+  const handleDelete = (id: number) => {
     //Implementation to delete latex expression at index id
     console.log("Delete item at index:", id);
     //Example implementation:  setLatexExpression(latexExpression.filter((_, index) => index !== id));
   };
 
+  const handleVoiceTypeResult = (expression: string, answer: string) => {
+    renderLatexToCanvas(expression, answer);
+  };
 
   return (
     <>
@@ -388,9 +419,9 @@ export default function Home() {
         <div className="flex items-center justify-between px-4 md:px-8 py-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg">
-              <img 
-                src="/logo.svg" 
-                alt="SnapSolver Logo" 
+              <img
+                src="/logo.svg"
+                alt="SnapSolver Logo"
                 className="w-full h-full rounded-xl"
               />
             </div>
@@ -398,20 +429,24 @@ export default function Home() {
               <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-emerald-300 to-teal-300 text-transparent bg-clip-text">
                 SnapSolver Canvas
               </h1>
-              <p className="text-xs text-emerald-200/60 hidden md:block">Draw your equations and get instant solutions</p>
+              <p className="text-xs text-emerald-200/60 hidden md:block">
+                Draw your equations and get instant solutions
+              </p>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-3">
             <div className="hidden lg:flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
               <div className="w-8 h-8 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                {user?.name?.charAt(0)?.toUpperCase() || "U"}
               </div>
-              <span className="text-white font-medium text-sm">{user?.name || 'User'}</span>
+              <span className="text-white font-medium text-sm">
+                {user?.name || "User"}
+              </span>
             </div>
-            
-            <Link 
-              to="/" 
+
+            <Link
+              to="/"
               className="group p-3 bg-white/10 hover:bg-white/20 backdrop-blur-sm border border-white/20 rounded-xl text-white transition-all duration-300 hover:scale-105 shadow-lg"
               title="Back to Home"
             >
@@ -428,7 +463,10 @@ export default function Home() {
           </Button>
         </SheetTrigger>
 
-        <SheetContent side={"left"} className="bg-gradient-to-b from-gray-900 via-slate-900/50 to-gray-900 border-r border-emerald-500/30">
+        <SheetContent
+          side={"left"}
+          className="bg-gradient-to-b from-gray-900 via-slate-900/50 to-gray-900 border-r border-emerald-500/30"
+        >
           <SheetHeader className="space-y-6">
             <SheetTitle>
               <div className="flex items-center space-x-3 mb-6">
@@ -439,7 +477,9 @@ export default function Home() {
                   <div className="font-bold text-2xl bg-gradient-to-r from-emerald-300 to-teal-300 text-transparent bg-clip-text text-start">
                     SnapSolver
                   </div>
-                  <div className="text-emerald-200/60 text-sm text-left">Canvas Tools</div>
+                  <div className="text-emerald-200/60 text-sm text-left">
+                    Canvas Tools
+                  </div>
                 </div>
               </div>
             </SheetTitle>
@@ -447,10 +487,12 @@ export default function Home() {
               <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
                 <div className="flex items-center space-x-3 mb-3">
                   <div className="w-10 h-10 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                    {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    {user?.name?.charAt(0)?.toUpperCase() || "U"}
                   </div>
                   <div>
-                    <p className="text-white font-medium">Welcome, {user?.name || 'User'}!</p>
+                    <p className="text-white font-medium">
+                      Welcome, {user?.name || "User"}!
+                    </p>
                     <p className="text-emerald-200/60 text-sm">{user?.email}</p>
                   </div>
                 </div>
@@ -501,7 +543,7 @@ export default function Home() {
                 <span className="mr-2">🎨</span>
                 Drawing Tools
               </h3>
-              
+
               {/* Tool Selection */}
               <div className="flex gap-3 mb-4">
                 <button
@@ -530,14 +572,16 @@ export default function Home() {
 
               {/* Color Palette */}
               <div className="mb-4">
-                <h4 className="text-emerald-200 text-sm font-medium mb-3">Colors</h4>
+                <h4 className="text-emerald-200 text-sm font-medium mb-3">
+                  Colors
+                </h4>
                 <div className="grid grid-cols-4 gap-2">
                   {SWATCHES.map((swatch) => (
                     <div
                       key={swatch}
                       className={`w-12 h-12 rounded-xl cursor-pointer transition-all duration-300 hover:scale-110 ${
-                        color === swatch 
-                          ? "ring-3 ring-white/70 ring-offset-2 ring-offset-gray-900 shadow-xl scale-105" 
+                        color === swatch
+                          ? "ring-3 ring-white/70 ring-offset-2 ring-offset-gray-900 shadow-xl scale-105"
                           : "hover:ring-2 hover:ring-white/40"
                       }`}
                       style={{ backgroundColor: swatch }}
@@ -557,7 +601,11 @@ export default function Home() {
                 </h4>
                 <div className="flex items-center gap-3">
                   <div className="bg-gradient-to-r from-emerald-500 to-teal-500 p-2 rounded-lg">
-                    {eraserSelected ? <FaEraser size={14} className="text-white" /> : <FaPencilAlt size={14} className="text-white" />}
+                    {eraserSelected ? (
+                      <FaEraser size={14} className="text-white" />
+                    ) : (
+                      <FaPencilAlt size={14} className="text-white" />
+                    )}
                   </div>
                   <Slider
                     className="flex-1"
@@ -570,17 +618,17 @@ export default function Home() {
                     step={1}
                     onChange={sliderChangeHandler}
                     sx={{
-                      '& .MuiSlider-thumb': {
-                        backgroundColor: '#a855f7',
-                        '&:hover': {
-                          boxShadow: '0px 0px 0px 8px rgba(168, 85, 247, 0.16)',
+                      "& .MuiSlider-thumb": {
+                        backgroundColor: "#a855f7",
+                        "&:hover": {
+                          boxShadow: "0px 0px 0px 8px rgba(168, 85, 247, 0.16)",
                         },
                       },
-                      '& .MuiSlider-track': {
-                        backgroundColor: '#a855f7',
+                      "& .MuiSlider-track": {
+                        backgroundColor: "#a855f7",
                       },
-                      '& .MuiSlider-rail': {
-                        backgroundColor: '#4b5563',
+                      "& .MuiSlider-rail": {
+                        backgroundColor: "#4b5563",
                       },
                     }}
                   />
@@ -595,7 +643,9 @@ export default function Home() {
                 onClick={() => setIsMenuOpen(false)}
                 ref={closeRef}
                 className="mt-10"
-              >Done</Button>
+              >
+                Done
+              </Button>
             </SheetClose>
           </SheetFooter>
         </SheetContent>
@@ -619,22 +669,26 @@ export default function Home() {
               step={1}
               onChange={sliderChangeHandler}
               sx={{
-                '& .MuiSlider-thumb': {
-                  backgroundColor: '#a855f7',
-                  '&:hover': {
-                    boxShadow: '0px 0px 0px 8px rgba(168, 85, 247, 0.16)',
+                "& .MuiSlider-thumb": {
+                  backgroundColor: "#a855f7",
+                  "&:hover": {
+                    boxShadow: "0px 0px 0px 8px rgba(168, 85, 247, 0.16)",
                   },
                 },
-                '& .MuiSlider-track': {
-                  backgroundColor: '#a855f7',
+                "& .MuiSlider-track": {
+                  backgroundColor: "#a855f7",
                 },
-                '& .MuiSlider-rail': {
-                  backgroundColor: '#4b5563',
+                "& .MuiSlider-rail": {
+                  backgroundColor: "#4b5563",
                 },
               }}
             />
             <div className="bg-gradient-to-r from-emerald-500 to-teal-500 p-2 rounded-lg">
-              {eraserSelected ? <FaEraser size={16} className="text-white" /> : <FaPencilAlt size={16} className="text-white" />}
+              {eraserSelected ? (
+                <FaEraser size={16} className="text-white" />
+              ) : (
+                <FaPencilAlt size={16} className="text-white" />
+              )}
             </div>
           </div>
         </div>
@@ -687,8 +741,8 @@ export default function Home() {
               <div
                 key={swatch}
                 className={`w-10 h-10 rounded-full cursor-pointer transition-all duration-300 hover:scale-110 ${
-                  color === swatch 
-                    ? "ring-4 ring-white/70 ring-offset-2 ring-offset-gray-900 shadow-xl" 
+                  color === swatch
+                    ? "ring-4 ring-white/70 ring-offset-2 ring-offset-gray-900 shadow-xl"
                     : "hover:ring-2 hover:ring-white/40 hover:ring-offset-1 hover:ring-offset-gray-900"
                 }`}
                 style={{ backgroundColor: swatch }}
@@ -720,6 +774,21 @@ export default function Home() {
           <span className="mr-2">🚀</span>
           Calculate
         </Button>
+
+        {/* History Button */}
+        <Button
+          onClick={() => setShowHistory(!showHistory)}
+          className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-semibold px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+        >
+          <span className="mr-2">📜</span>
+          History
+        </Button>
+
+        {/* Voice/Type Input */}
+        <VoiceTypeInput
+          onResult={handleVoiceTypeResult}
+          dictOfVars={dictOfVars}
+        />
       </div>
       {/* Enhanced Canvas - Full Screen Drawing Area */}
       <canvas
@@ -742,8 +811,8 @@ export default function Home() {
             key={index}
             className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 p-6 text-white rounded-2xl shadow-2xl bg-gradient-to-r from-gray-900/95 to-slate-900/95 backdrop-blur-xl border border-emerald-500/30 max-w-[90vw] md:max-w-[600px] break-words z-40"
             style={{
-              maxHeight: '60vh',
-              overflowY: 'auto'
+              maxHeight: "60vh",
+              overflowY: "auto",
             }}
             onTouchStart={() => handleTouchStart()}
             onTouchEnd={() => handleTouchEnd(index)}
@@ -754,6 +823,21 @@ export default function Home() {
             </div>
           </div>
         ))}
+      {/* History Panel */}
+      {showHistory && (
+        <div className="fixed right-6 top-24 z-50 w-80 bg-gray-900/95 backdrop-blur-xl border border-purple-500/30 rounded-2xl shadow-2xl">
+          <div className="flex items-center justify-between p-4 border-b border-white/10">
+            <h2 className="text-white font-semibold">📜 History</h2>
+            <button
+              onClick={() => setShowHistory(false)}
+              className="text-gray-400 hover:text-white transition-colors text-xl leading-none"
+            >
+              ✕
+            </button>
+          </div>
+          <HistoryPanel />
+        </div>
+      )}
     </>
   );
 }
