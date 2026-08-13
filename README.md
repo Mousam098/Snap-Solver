@@ -152,4 +152,4 @@ snapSolver/
 
 ---
 
-Made by [Sujay Rana](https://github.com/ranasujay)
+Made by MOUSOM KOLEY and three co-workers
